@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Check, Phone, Mail, Wrench } from "lucide-react";
+import { Check, Phone, Mail, Wrench, Badge, Star, CheckCircle } from "lucide-react";
+import SubscribePopup from "@/components/SubscribePopup";
 
 const SubscriptionModel = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [showSubscribePopup, setShowSubscribePopup] = useState(false);
 
   const plans = [
     {
@@ -146,57 +148,77 @@ const SubscriptionModel = () => {
       </section>
 
       {/* Plan Cards */}
-      <section className="py-8">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {plans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.popular ? 'ring-2 ring-zoss-green shadow-lg' : ''}`}>
+          <div className="text-center mb-16">
+            <h3 className="font-heading text-4xl font-bold text-zoss-blue mb-4">
+              Subscription Plans
+            </h3>
+            <p className="text-xl text-zoss-gray max-w-3xl mx-auto">Choose the perfect plan for your hydration needs</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                name: "Starter Plan",
+                subtitle: "3-5 employees",
+                price: "₹3,900",
+                popular: false,
+                features: ["1 Zoss Dispenser", "Weekly filter change", "Basic maintenance", "Phone support"]
+              },
+              {
+                name: "Business Plan",
+                subtitle: "6-15 employees", 
+                price: "₹7,500",
+                popular: true,
+                features: ["2 Zoss Dispensers", "Monthly maintenance", "Priority support", "On-site training"]
+              },
+              {
+                name: "Enterprise Plan",
+                subtitle: "16-50 employees",
+                price: "₹15,000",
+                popular: false,
+                features: ["Custom package", "On-site servicing", "Dedicated manager", "24/7 support"]
+              },
+              {
+                name: "Custom Plan",
+                subtitle: "50+ employees",
+                price: "Contact Us",
+                popular: false,
+                features: ["Tailored solutions", "Volume discounts", "Custom maintenance", "Enterprise support"]
+              }
+            ].map((plan, index) => (
+              <Card key={index} className={`relative hover:shadow-2xl transition-all duration-300 border-2 ${plan.popular ? 'border-zoss-green scale-105' : 'border-gray-200 hover:border-zoss-green/50'} bg-white/80 backdrop-blur-sm`}>
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-zoss-green text-white px-4 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-zoss-green to-green-600 text-white px-4 py-1 text-sm font-semibold">
+                      <Star className="w-3 h-3 mr-1" />
                       Most Popular
-                    </span>
+                    </Badge>
                   </div>
                 )}
-                
-                <CardHeader className="text-center">
-                  <CardTitle className="text-xl font-semibold text-zoss-blue">{plan.name}</CardTitle>
-                  <p className="text-sm text-zoss-gray">{plan.subtitle}</p>
-                  <div className="py-4">
-                    <div className="text-3xl font-bold text-zoss-green">
-                      {getPrice(plan)}
-                    </div>
-                    {plan.monthlyPrice !== null && (
-                      <div className="text-sm text-zoss-gray">
-                        {isAnnual ? '/month (billed annually)' : '/month'}
-                      </div>
-                    )}
-                    {isAnnual && plan.monthlyPrice !== null && (
-                      <div className="text-xs text-zoss-green font-medium mt-1">
-                        Save {getSavings(plan)}% annually
-                      </div>
-                    )}
+                <CardHeader className="text-center pt-8">
+                  <CardTitle className="text-2xl font-bold text-zoss-blue">{plan.name}</CardTitle>
+                  <p className="text-sm text-zoss-gray mb-4">{plan.subtitle}</p>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold text-zoss-green">{plan.price}</div>
+                    {plan.price !== "Contact Us" && <span className="text-sm text-zoss-gray">/month</span>}
                   </div>
                 </CardHeader>
-                
-                <CardContent>
+                <CardContent className="pt-0">
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start space-x-2">
-                        <Check className="h-4 w-4 text-zoss-green mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-zoss-gray">{feature}</span>
+                      <li key={idx} className="text-sm text-zoss-gray flex items-center">
+                        <CheckCircle className="w-4 h-4 text-zoss-green mr-3 flex-shrink-0" />
+                        {feature}
                       </li>
                     ))}
                   </ul>
-                  
                   <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-zoss-green hover:bg-zoss-green/90 text-white' 
-                        : 'bg-white hover:bg-gray-50 text-zoss-blue border border-zoss-blue'
-                    }`}
+                    onClick={() => setShowSubscribePopup(true)}
+                    className={`w-full ${plan.popular ? 'bg-gradient-to-r from-zoss-green to-green-600 hover:from-zoss-green/90 hover:to-green-600/90' : 'bg-zoss-green hover:bg-zoss-green/90'} text-white py-3 font-semibold`}
                   >
-                    {plan.monthlyPrice === null ? 'Request Quote' : 'Subscribe Now'}
+                    Subscribe Now
                   </Button>
                 </CardContent>
               </Card>
@@ -282,6 +304,7 @@ const SubscriptionModel = () => {
           </p>
         </div>
       </section>
+      <SubscribePopup isOpen={showSubscribePopup} onClose={() => setShowSubscribePopup(false)} />
     </div>
   );
 };

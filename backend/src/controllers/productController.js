@@ -1,6 +1,7 @@
 const Product = require('../models/Product');
 const Service = require('../models/Service');
 const AdminUpdate = require('../models/AdminUpdate');
+const User = require('../models/User');
 const { calculateWarrantyEnd, calculateAmcEnd, calculateNextServiceDate } = require('../utils/dateUtils');
 
 // Get all products for a user
@@ -49,7 +50,7 @@ const getProduct = async (req, res, next) => {
 const addProduct = async (req, res, next) => {
   try {
     const {
-      userId,
+      customerEmail,
       productName,
       modelNumber,
       purchaseDate,
@@ -59,17 +60,35 @@ const addProduct = async (req, res, next) => {
       customServiceFrequency
     } = req.body;
 
-    // Get default values from AdminUpdate if not provided
-    let warrantyMonths = customWarrantyMonths;
-    let amcMonths = customAmcMonths;
-    let serviceFrequency = customServiceFrequency;
+    // Find customer by email
+    let targetUserId;
+    if (customerEmail) {
+      const customer = await User.findOne({ email: customerEmail, role: 'user' });
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found with the provided email'
+        });
+      }
+      targetUserId = customer.userId;
+    } else {
+      // Fallback to authenticated user's ID (for admin's own products)
+      targetUserId = req.user.userId;
+    }
 
-    if (!warrantyMonths || !amcMonths || !serviceFrequency) {
+    // Get default values from AdminUpdate if not provided
+    let warrantyMonths = customWarrantyMonths !== undefined && customWarrantyMonths !== '' ? Number(customWarrantyMonths) : undefined;
+    let amcMonths = customAmcMonths !== undefined && customAmcMonths !== '' ? Number(customAmcMonths) : undefined;
+    let serviceFrequency = customServiceFrequency !== undefined && customServiceFrequency !== '' ? Number(customServiceFrequency) : undefined;
+    let finalProductName = productName;
+
+    if (!warrantyMonths || !amcMonths || !serviceFrequency || !finalProductName) {
       const adminUpdate = await AdminUpdate.findOne({ modelNumber });
       if (adminUpdate) {
         warrantyMonths = warrantyMonths || adminUpdate.defaultWarrantyMonths;
         amcMonths = amcMonths || adminUpdate.defaultAmcMonths;
         serviceFrequency = serviceFrequency || adminUpdate.serviceFrequencyDays;
+        finalProductName = finalProductName || adminUpdate.productName;
       }
     }
 
@@ -81,8 +100,8 @@ const addProduct = async (req, res, next) => {
 
     // Create product
     const product = await Product.create({
-      userId,
-      productName,
+      userId: targetUserId,
+      productName: finalProductName,
       modelNumber,
       purchaseDate,
       imageUrl,
@@ -100,7 +119,7 @@ const addProduct = async (req, res, next) => {
     // Create initial service record
     const nextServiceDate = calculateNextServiceDate(purchaseDate, serviceFrequency || 90);
     await Service.create({
-      userId,
+      userId: targetUserId,
       productId: product._id,
       nextServiceDate
     });
@@ -196,10 +215,48 @@ const getAllProducts = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const products = await Product.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const products = await Product.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: 'userId',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: {
+          path: '$user',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          productName: 1,
+          modelNumber: 1,
+          purchaseDate: 1,
+          imageUrl: 1,
+          warranty: 1,
+          amcValidity: 1,
+          isApprovedByAdmin: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          userId: 1,
+          customerName: '$user.name',
+          customerEmail: '$user.email'
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $skip: skip
+      },
+      {
+        $limit: limit
+      }
+    ]);
 
     const total = await Product.countDocuments();
 

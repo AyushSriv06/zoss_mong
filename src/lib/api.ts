@@ -59,7 +59,16 @@ export const productsAPI = {
     api.get(`/products/${id}`),
   
   // Admin only
-  addProduct: (data: any) =>
+  addProduct: (data: {
+    customerEmail?: string;
+    productName: string;
+    modelNumber: string;
+    purchaseDate: string;
+    imageUrl?: string;
+    customWarrantyMonths?: string;
+    customAmcMonths?: string;
+    customServiceFrequency?: string;
+  }) =>
     api.post('/products', data),
   
   updateProduct: (id: string, data: any) =>

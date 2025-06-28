@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Droplets, Leaf, Shield, Users, Award, Calculator, Car, TreePine, Smartphone, ArrowRight, Sparkles, CheckCircle, Star } from "lucide-react";
 import DoshaQuestionnaire from "@/components/DoshaQuestionnaire";
-import UseCasesSection from "@/components/UseCasesSection";
+
 import SubscribePopup from "@/components/SubscribePopup";
-import QuoteForm from "@/components/QuoteForm";
+
 
 const Index = () => {
   const [selectedDosha, setSelectedDosha] = useState("");
@@ -195,7 +195,7 @@ const Index = () => {
       <DoshaQuestionnaire />
 
       {/* Use Cases & Applications Section - New Tabbed Layout */}
-      <UseCasesSection />
+      {/* <UseCasesSection /> */}
 
       {/* B2B Calculator Section */}
       <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50/30">
@@ -415,79 +415,6 @@ const Index = () => {
                 )}
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Water Ionizer Collection - Modified for individual product pages */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h3 className="font-heading text-4xl font-bold text-zoss-blue mb-4">
-              Water Ionizer Collection
-            </h3>
-            <p className="text-xl text-zoss-gray max-w-3xl mx-auto">Discover our premium range of alkaline water ionizers designed for every need</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                id: "countertop-ionizer",
-                name: "Zoss Countertop Ionizer",
-                image: "/lovable-uploads/622f2f9b-d2f1-4f0c-ac4f-656dca514723.png",
-                price: "₹25,000",
-                features: ["pH Range: 8.5-11.0", "Compact Design", "Easy Installation"],
-                description: "Perfect for kitchens and small spaces"
-              },
-              {
-                id: "under-sink-ionizer",
-                name: "Zoss Under-Sink Ionizer",
-                image: "/lovable-uploads/e2461f2f-96be-4a69-ad60-df4433dd50ce.png",
-                price: "₹45,000",
-                features: ["pH Range: 8.0-11.5", "Hidden Installation", "High Flow Rate"],
-                description: "Seamless integration for modern kitchens"
-              },
-              {
-                id: "zoss-atlanta",
-                name: "Zoss Atlanta",
-                image: "/lovable-uploads/91d71d34-d5aa-44bb-8185-e5698d380783.png",
-                price: "₹1,59,000",
-                features: ["Premium Quality", "Advanced Ionization", "Professional Grade"],
-                description: "Commercial-grade solution for businesses"
-              }
-            ].map((product, index) => (
-              <Card key={index} className="hover:shadow-2xl transition-all duration-300 border-0 bg-white overflow-hidden group">
-                <div className="w-full h-48 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-                  <img 
-                    src={product.image} 
-                    alt={product.name}
-                    className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-xl text-zoss-blue group-hover:text-zoss-green transition-colors">
-                    {product.name}
-                  </CardTitle>
-                  <div className="text-2xl font-bold text-zoss-green">{product.price}</div>
-                  <p className="text-sm text-zoss-gray">{product.description}</p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 mb-6">
-                    {product.features.map((feature, idx) => (
-                      <li key={idx} className="text-sm text-zoss-gray flex items-center">
-                        <CheckCircle className="w-4 h-4 text-zoss-green mr-2 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to={`/product/${product.id}`}>
-                    <Button className="w-full bg-zoss-green hover:bg-zoss-green/90 text-white font-semibold group-hover:bg-gradient-to-r group-hover:from-zoss-green group-hover:to-green-600 transition-all">
-                      View Details & Get Quote
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </div>
       </section>
@@ -740,7 +667,7 @@ const Index = () => {
       </section>
 
       {/* Enhanced Custom Quote Form */}
-      <QuoteForm />
+      {/* <QuoteForm /> */}
 
       {/* Subscribe Popup */}
       <SubscribePopup 

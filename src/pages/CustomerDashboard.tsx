@@ -271,7 +271,6 @@ const CustomerDashboard = () => {
                           <p className="text-sm text-zoss-gray mb-3">
                             Purchased: {format(new Date(product.purchaseDate), 'MMM dd, yyyy')}
                           </p>
-                          
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs font-medium text-zoss-gray">Warranty</p>
@@ -287,7 +286,6 @@ const CustomerDashboard = () => {
                                 </span>
                               </div>
                             </div>
-                            
                             <div>
                               <p className="text-xs font-medium text-zoss-gray">AMC</p>
                               <div className="flex items-center space-x-2">
@@ -303,6 +301,12 @@ const CustomerDashboard = () => {
                               </div>
                             </div>
                           </div>
+                          <Button
+                            className="mt-4 bg-zoss-green hover:bg-zoss-green/90"
+                            onClick={() => handleBookService(product)}
+                          >
+                            Book Service
+                          </Button>
                         </div>
                       </div>
                     </CardContent>

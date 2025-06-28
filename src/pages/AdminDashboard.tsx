@@ -42,6 +42,8 @@ interface User {
 interface Product {
   _id: string;
   userId: string;
+  customerName?: string;
+  customerEmail?: string;
   productName: string;
   modelNumber: string;
   purchaseDate: string;
@@ -80,7 +82,7 @@ const AdminDashboard = () => {
   const [showAddTemplateDialog, setShowAddTemplateDialog] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
-    userId: '',
+    customerEmail: '',
     productName: '',
     modelNumber: '',
     purchaseDate: '',
@@ -150,11 +152,16 @@ const AdminDashboard = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await productsAPI.addProduct(newProduct);
+      const productData = {
+        ...newProduct,
+        customerEmail: selectedUser?.email || ''
+      };
+      
+      await productsAPI.addProduct(productData);
       toast.success('Product added successfully');
       setShowAddProductDialog(false);
       setNewProduct({
-        userId: '',
+        customerEmail: '',
         productName: '',
         modelNumber: '',
         purchaseDate: '',
@@ -351,8 +358,6 @@ const AdminDashboard = () => {
                             <DialogTitle>Add Product for {selectedUser.name}</DialogTitle>
                           </DialogHeader>
                           <form onSubmit={handleAddProduct} className="space-y-4">
-                            <input type="hidden" value={selectedUser.userId} onChange={(e) => setNewProduct({...newProduct, userId: e.target.value})} />
-                            
                             <div>
                               <Label htmlFor="productName">Product Name</Label>
                               <Input

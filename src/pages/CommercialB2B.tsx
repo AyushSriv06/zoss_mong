@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Leaf, Heart, Building, Users, TrendingUp } from "lucide-react";
+import QuoteForm from "@/components/QuoteForm";
 
 const CommercialB2B = () => {
   return (
@@ -96,66 +97,7 @@ const CommercialB2B = () => {
       </section>
 
       {/* Contact Form */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-heading text-3xl font-semibold text-zoss-blue text-center mb-12">
-            Get a Custom Quote
-          </h2>
-          
-          <Card className="p-8">
-            <CardContent>
-              <form className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="Enter your name" />
-                  </div>
-                  <div>
-                    <Label htmlFor="company">Company Name</Label>
-                    <Input id="company" placeholder="Enter company name" />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" placeholder="Enter email address" />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" placeholder="Enter phone number" />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="business-type">Type of Business</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select business type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="office">Office</SelectItem>
-                      <SelectItem value="spa">Spa</SelectItem>
-                      <SelectItem value="restaurant">Restaurant</SelectItem>
-                      <SelectItem value="hotel">Hotel</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea id="message" placeholder="Tell us about your requirements..." rows={4} />
-                </div>
-                
-                <Button className="w-full bg-zoss-green hover:bg-zoss-green/90 text-white py-3">
-                  Get Custom Quote
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <QuoteForm />
     </div>
   );
 };

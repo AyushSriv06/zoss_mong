@@ -30,11 +30,17 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
   }
 });
-app.use('/api/', limiter);
+//app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:8080',
+    'http://localhost:4173',
+    FRONTEND_URL
+  ],
   credentials: true,
   optionsSuccessStatus: 200
 }));

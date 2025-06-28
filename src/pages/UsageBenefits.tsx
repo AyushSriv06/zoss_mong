@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Droplets, Shield, Zap, Heart, Leaf, RotateCcw } from "lucide-react";
+import UseCasesSection from "@/components/UseCasesSection";
 
 const UsageBenefits = () => {
   const benefits = [
@@ -96,29 +97,7 @@ const UsageBenefits = () => {
       </section>
 
       {/* Interactive Use Cases */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-heading text-3xl font-semibold text-zoss-blue text-center mb-12">
-            Use Cases & Applications
-          </h2>
-          
-          <Accordion type="single" collapsible className="space-y-4">
-            {useCases.map((useCase, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border border-gray-200 rounded-lg px-6">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-zoss-green rounded-full"></div>
-                    <span className="font-heading text-lg font-semibold text-zoss-blue">{useCase.title}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-4 pb-6">
-                  <p className="text-zoss-gray leading-relaxed">{useCase.content}</p>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      <UseCasesSection />
 
       {/* Scientific Backing */}
       <section className="py-16 bg-zoss-cream">

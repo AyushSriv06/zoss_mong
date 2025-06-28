@@ -55,6 +55,11 @@ const validateProduct = [
   body('purchaseDate')
     .isISO8601()
     .withMessage('Please provide a valid purchase date'),
+  body('customerEmail')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid customer email'),
   handleValidationErrors
 ];
 

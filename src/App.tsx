@@ -17,6 +17,8 @@ import AuthPage from "./pages/AuthPage";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import B2CSolutions from "./pages/B2CSolutions";
+import CommercialB2B from "./pages/CommercialB2B";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
+                <Route path="/b2c-solutions" element={<B2CSolutions />} />
+                <Route path="/commercial-b2b" element={<CommercialB2B />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
