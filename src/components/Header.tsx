@@ -1,12 +1,21 @@
-
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
 
   const navigationItems = [
     { name: "Home", path: "/" },
@@ -17,6 +26,11 @@ const Header = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-lg sticky top-0 z-50 border-b border-gray-100">
@@ -53,11 +67,41 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="hidden lg:block">
-            <Button className="bg-gradient-to-r from-zoss-green via-green-500 to-blue-500 hover:from-zoss-green/90 hover:via-green-500/90 hover:to-blue-500/90 text-white font-semibold tracking-wider px-8 py-3 rounded-full shadow-lg transform hover:scale-105 transition-all duration-200 border border-white/20">
-              REQUEST A DEMO
-            </Button>
+          {/* Auth Section */}
+          <div className="hidden lg:flex items-center space-x-4">
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span>{user?.name}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate('/admin-dashboard')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Admin Panel</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button className="bg-gradient-to-r from-zoss-green via-green-500 to-blue-500 hover:from-zoss-green/90 hover:via-green-500/90 hover:to-blue-500/90 text-white font-semibold tracking-wider px-8 py-3 rounded-full shadow-lg transform hover:scale-105 transition-all duration-200 border border-white/20">
+                  LOGIN / SIGNUP
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -92,9 +136,46 @@ const Header = () => {
                 </Link>
               ))}
               <div className="px-3 py-2">
-                <Button className="w-full bg-gradient-to-r from-zoss-green to-blue-500 hover:from-zoss-green/90 hover:to-blue-500/90 text-white font-medium tracking-wider">
-                  REQUEST A DEMO
-                </Button>
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full bg-zoss-green hover:bg-zoss-green/90 text-white"
+                    >
+                      Dashboard
+                    </Button>
+                    {isAdmin && (
+                      <Button 
+                        onClick={() => {
+                          navigate('/admin-dashboard');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full bg-zoss-blue hover:bg-zoss-blue/90 text-white"
+                      >
+                        Admin Panel
+                      </Button>
+                    )}
+                    <Button 
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to="/auth">
+                    <Button className="w-full bg-gradient-to-r from-zoss-green to-blue-500 hover:from-zoss-green/90 hover:to-blue-500/90 text-white font-medium tracking-wider">
+                      LOGIN / SIGNUP
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
