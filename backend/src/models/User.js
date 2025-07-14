@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   providerId: { type: String }, // Google ID for OAuth users
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
+  address: { type: String },
+  phoneNumber: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

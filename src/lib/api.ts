@@ -43,7 +43,7 @@ export const authAPI = {
   getProfile: () =>
     api.get('/users/profile'),
   
-  updateProfile: (data: { name: string }) =>
+  updateProfile: (data: { name?: string; address?: string; phoneNumber?: string }) =>
     api.put('/users/profile', data),
   
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
@@ -86,6 +86,14 @@ export const productsAPI = {
 
 // Services API
 export const servicesAPI = {
+  createServiceRequest: (data: {
+    productId: string;
+    issueDescription: string;
+    requestedDate: string;
+    requestedTime: string;
+  }) =>
+    api.post('/services/request', data),
+  
   getUserServices: () =>
     api.get('/services/my-services'),
   
@@ -96,6 +104,17 @@ export const servicesAPI = {
     api.put(`/services/${id}/complete`, data),
   
   // Admin only
+  getPendingServiceRequests: () =>
+    api.get('/services/pending'),
+  
+  approveServiceRequest: (id: string, data: {
+    technicianName: string;
+    technicianContact: string;
+    scheduledDate: string;
+    scheduledTime: string;
+  }) =>
+    api.put(`/services/${id}/approve`, data),
+  
   getAllServices: (page = 1, limit = 10) =>
     api.get(`/services?page=${page}&limit=${limit}`),
   

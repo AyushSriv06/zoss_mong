@@ -1,27 +1,59 @@
 const Service = require('../models/Service');
 const Product = require('../models/Product');
+const User = require('../models/User');
 const { getServiceStatus, calculateNextServiceDate } = require('../utils/dateUtils');
+
+// Create service request (Customer)
+const createServiceRequest = async (req, res, next) => {
+  try {
+    const { productId, issueDescription, requestedDate, requestedTime } = req.body;
+
+    // Verify product belongs to user
+    const product = await Product.findOne({
+      _id: productId,
+      userId: req.user.userId
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found or does not belong to you'
+      });
+    }
+
+    // Create service request
+    const service = await Service.create({
+      userId: req.user.userId,
+      productId,
+      issueDescription,
+      requestedDate: new Date(requestedDate),
+      requestedTime,
+      status: 'Pending Approval'
+    });
+
+    const populatedService = await Service.findById(service._id)
+      .populate('productId', 'productName modelNumber imageUrl');
+
+    res.status(201).json({
+      success: true,
+      message: 'Service request created successfully',
+      data: { service: populatedService }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Get user's services
 const getUserServices = async (req, res, next) => {
   try {
     const services = await Service.find({ userId: req.user.userId })
       .populate('productId', 'productName modelNumber imageUrl')
-      .sort({ nextServiceDate: 1 });
-
-    // Update service statuses
-    const updatedServices = services.map(service => {
-      const status = getServiceStatus(service.nextServiceDate);
-      if (service.status !== status) {
-        service.status = status;
-        service.save();
-      }
-      return service;
-    });
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
-      data: { services: updatedServices }
+      data: { services }
     });
   } catch (error) {
     next(error);
@@ -96,6 +128,64 @@ const completeService = async (req, res, next) => {
   }
 };
 
+// Get pending service requests (Admin only)
+const getPendingServiceRequests = async (req, res, next) => {
+  try {
+    const services = await Service.find({ status: 'Pending Approval' })
+      .populate('productId', 'productName modelNumber imageUrl')
+      .populate({
+        path: 'userId',
+        select: 'name email address phoneNumber',
+        model: 'User',
+        localField: 'userId',
+        foreignField: 'userId'
+      })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: { services }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Approve service request (Admin only)
+const approveServiceRequest = async (req, res, next) => {
+  try {
+    const { technicianName, technicianContact, scheduledDate, scheduledTime } = req.body;
+    const serviceId = req.params.id;
+
+    const service = await Service.findByIdAndUpdate(
+      serviceId,
+      {
+        technicianName,
+        technicianContact,
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        status: 'Approved & Scheduled'
+      },
+      { new: true, runValidators: true }
+    ).populate('productId', 'productName modelNumber');
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service request not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Service request approved and scheduled successfully',
+      data: { service }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get all services (Admin only)
 const getAllServices = async (req, res, next) => {
   try {
@@ -105,7 +195,7 @@ const getAllServices = async (req, res, next) => {
 
     const services = await Service.find()
       .populate('productId', 'productName modelNumber')
-      .sort({ nextServiceDate: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -163,7 +253,7 @@ const getServicesByUser = async (req, res, next) => {
     
     const services = await Service.find({ userId })
       .populate('productId', 'productName modelNumber imageUrl')
-      .sort({ nextServiceDate: 1 });
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -194,9 +284,12 @@ const getOverdueServices = async (req, res, next) => {
 };
 
 module.exports = {
+  createServiceRequest,
   getUserServices,
   getServicesDueSoon,
   completeService,
+  getPendingServiceRequests,
+  approveServiceRequest,
   getAllServices,
   updateService,
   getServicesByUser,

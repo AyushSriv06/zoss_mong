@@ -47,7 +47,9 @@ const registerUser = async (req, res, next) => {
           userId: user.userId,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          address: user.address,
+          phoneNumber: user.phoneNumber
         },
         token
       }
@@ -99,7 +101,9 @@ const loginUser = async (req, res, next) => {
           userId: user.userId,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          address: user.address,
+          phoneNumber: user.phoneNumber
         },
         token
       }
@@ -126,11 +130,16 @@ const getUserProfile = async (req, res, next) => {
 // Update user profile
 const updateUserProfile = async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, address, phoneNumber } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (address !== undefined) updateData.address = address;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     
     const user = await User.findOneAndUpdate(
       { userId: req.user.userId },
-      { name },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 

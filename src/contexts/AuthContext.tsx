@@ -6,6 +6,8 @@ interface User {
   name: string;
   email: string;
   role: 'user' | 'admin';
+  address?: string;
+  phoneNumber?: string;
 }
 
 interface AuthContextType {
@@ -14,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -96,12 +99,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   const value = {
     user,
     token,
     login,
     register,
     logout,
+    updateUser,
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
