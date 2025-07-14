@@ -269,9 +269,9 @@ const ProductDetail = () => {
           </div>
 
           {/* Quote Form */}
-          <div id="quote-form">
+          {/* <div id="quote-form">
             <QuoteForm productName={product.name} />
-          </div>
+          </div> */}
         </div>
       </section>
     </div>
