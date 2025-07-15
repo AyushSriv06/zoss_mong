@@ -72,7 +72,7 @@ interface ProductTemplate {
   modelNumber: string;
   productName: string;
   description?: string;
-  defaul\tWarrantyMonths: number;
+  defaultWarrantyMonths: number;
   defaultAmcMonths: number;
   serviceFrequencyDays: number;
 }
