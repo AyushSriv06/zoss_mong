@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { adminAPI, productsAPI, servicesAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { 
@@ -23,12 +25,10 @@ import {
   TrendingUp,
   Clock,
   Check,
-  X
+  X,
+  CalendarIcon
 } from 'lucide-react';
-import { format, parseISO, isBefore, addDays } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-
+import { format } from 'date-fns';
 
 interface DashboardStats {
   totalUsers: number;
@@ -157,6 +157,10 @@ const AdminDashboard = () => {
     serviceFrequencyDays: 90
   });
 
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -262,21 +266,282 @@ const AdminDashboard = () => {
     }
   };
 
-  //\ ... rest of the code remains unchanged ...
+  const addProductTemplate = async () => {
+    try {
+      await adminAPI.createProductTemplate(templateForm);
+      toast.success('Product template added successfully');
+      setShowAddTemplateDialog(false);
+      setTemplateForm({
+        modelNumber: '',
+        productName: '',
+        description: '',
+        defaultWarrantyMonths: 12,
+        defaultAmcMonths: 12,
+        serviceFrequencyDays: 90
+      });
+      fetchDashboardData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to add product template');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zoss-cream flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-zoss-green"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zoss-cream">
-      {/* ... rest \of the JSX remains unchanged ... */}
-      
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-zoss-blue mb-2">Admin Dashboard</h1>
+          <p className="text-zoss-gray">Manage users, products, and services</p>
+        </div>
+
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="services">Service Requests</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
 
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <Users className="h-8 w-8 text-blue-500" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-zoss-gray">Total Users</p>
+                      <p className="text-2xl font-bold text-zoss-blue">{stats.totalUsers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <Package className="h-8 w-8 text-green-500" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-zoss-gray">Total Products</p>
+                      <p className="text-2xl font-bold text-zoss-blue">{stats.totalProducts}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-8 w-8 text-yellow-500" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-zoss-gray">Pending Approvals</p>
+                      <p className="text-2xl font-bold text-zoss-blue">{stats.pendingApprovals}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <Clock className="h-8 w-8 text-red-500" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-zoss-gray">Overdue Services</p>
+                      <p className="text-2xl font-bold text-zoss-blue">{stats.overdueServices}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <TrendingUp className="h-8 w-8 text-purple-500" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-zoss-gray">Recent Users</p>
+                      <p className="text-2xl font-bold text-zoss-blue">{stats.recentUsers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>All Users</span>
+                  <Badge variant="secondary">{users.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user._id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell className="font-mono text-sm">{user.userId}</TableCell>
+                        <TableCell>{format(new Date(user.createdAt), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Products Tab */}
+          <TabsContent value="products" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>All Products</span>
+                  <Dialog open={showAddProductDialog} onOpenChange={setShowAddProductDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-zoss-green hover:bg-zoss-green/90">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Product
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Add New Product</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="customer-email">Customer Email</Label>
+                          <Input
+                            id="customer-email"
+                            value={productForm.customerEmail}
+                            onChange={(e) => setProductForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                            placeholder="Enter customer email"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="product-name">Product Name</Label>
+                            <Input
+                              id="product-name"
+                              value={productForm.productName}
+                              onChange={(e) => setProductForm(prev => ({ ...prev, productName: e.target.value }))}
+                              placeholder="Enter product name"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="model-number">Model Number</Label>
+                            <Input
+                              id="model-number"
+                              value={productForm.modelNumber}
+                              onChange={(e) => setProductForm(prev => ({ ...prev, modelNumber: e.target.value }))}
+                              placeholder="Enter model number"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="purchase-date">Purchase Date</Label>
+                          <Input
+                            id="purchase-date"
+                            type="date"
+                            value={productForm.purchaseDate}
+                            onChange={(e) => setProductForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex space-x-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAddProductDialog(false)}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={addProduct}
+                            className="flex-1 bg-zoss-green hover:bg-zoss-green/90"
+                          >
+                            Add Product
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Model</TableHead>
+                      <TableHead>Purchase Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product._id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{product.customerName || 'N/A'}</p>
+                            <p className="text-sm text-gray-500">{product.customerEmail}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{product.productName}</TableCell>
+                        <TableCell>{product.modelNumber}</TableCell>
+                        <TableCell>{format(new Date(product.purchaseDate), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.isApprovedByAdmin ? "default" : "secondary"}>
+                            {product.isApprovedByAdmin ? "Approved" : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Service Requests Tab */}
           <TabsContent value="services" className="space-y-6">
             {/* Pending Service Requests */}
             <Card>
@@ -410,7 +675,188 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Templates Tab */}
+          <TabsContent value="templates" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Product Templates</span>
+                  <Dialog open={showAddTemplateDialog} onOpenChange={setShowAddTemplateDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-zoss-green hover:bg-zoss-green/90">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Template
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Add Product Template</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="template-model">Model Number</Label>
+                            <Input
+                              id="template-model"
+                              value={templateForm.modelNumber}
+                              onChange={(e) => setTemplateForm(prev => ({ ...prev, modelNumber: e.target.value }))}
+                              placeholder="Enter model number"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="template-name">Product Name</Label>
+                            <Input
+                              id="template-name"
+                              value={templateForm.productName}
+                              onChange={(e) => setTemplateForm(prev => ({ ...prev, productName: e.target.value }))}
+                              placeholder="Enter product name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="template-description">Description</Label>
+                          <Input
+                            id="template-description"
+                            value={templateForm.description}
+                            onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Enter description"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="template-warranty">Warranty (Months)</Label>
+                            <Input
+                              id="template-warranty"
+                              type="number"
+                              value={templateForm.defaultWarrantyMonths}
+                              onChange={(e) => setTemplateForm(prev => ({ ...prev, defaultWarrantyMonths: parseInt(e.target.value) || 0 }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="template-amc">AMC (Months)</Label>
+                            <Input
+                              id="template-amc"
+                              type="number"
+                              value={templateForm.defaultAmcMonths}
+                              onChange={(e) => setTemplateForm(prev => ({ ...prev, defaultAmcMonths: parseInt(e.target.value) || 0 }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="template-service">Service Frequency (Days)</Label>
+                            <Input
+                              id="template-service"
+                              type="number"
+                              value={templateForm.serviceFrequencyDays}
+                              onChange={(e) => setTemplateForm(prev => ({ ...prev, serviceFrequencyDays: parseInt(e.target.value) || 0 }))}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAddTemplateDialog(false)}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={addProductTemplate}
+                            className="flex-1 bg-zoss-green hover:bg-zoss-green/90"
+                          >
+                            Add Template
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Model Number</TableHead>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead>Warranty</TableHead>
+                      <TableHead>AMC</TableHead>
+                      <TableHead>Service Frequency</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {productTemplates.map((template) => (
+                      <TableRow key={template._id}>
+                        <TableCell className="font-mono">{template.modelNumber}</TableCell>
+                        <TableCell className="font-medium">{template.productName}</TableCell>
+                        <TableCell>{template.defaultWarrantyMonths} months</TableCell>
+                        <TableCell>{template.defaultAmcMonths} months</TableCell>
+                        <TableCell>{template.serviceFrequencyDays} days</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* Complete Service Dialog */}
+        <Dialog open={showCompleteServiceDialog} onOpenChange={setShowCompleteServiceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Service</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="service-notes">Service Notes</Label>
+                <Input
+                  id="service-notes"
+                  value={serviceForm.serviceNotes}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, serviceNotes: e.target.value }))}
+                  placeholder="Enter service notes"
+                />
+              </div>
+              <div>
+                <Label htmlFor="next-service-days">Next Service (Days)</Label>
+                <Input
+                  id="next-service-days"
+                  type="number"
+                  value={serviceForm.nextServiceDays}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, nextServiceDays: e.target.value }))}
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCompleteServiceDialog(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={submitCompleteService}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Complete Service
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Approve Service Dialog */}
         <Dialog open={showApproveServiceDialog} onOpenChange={setShowApproveServiceDialog}>
@@ -533,93 +979,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Product Template Dialog */}
-        <Dialog open={showAddTemplateDialog} onOpenChange={setShowAddTemplateDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add Product Template</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="template-model">Model Number</Label>
-                  <Input
-                    id="template-model"
-                    value={templateForm.modelNumber}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, modelNumber: e.target.value }))}
-                    placeholder="Enter model number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="template-name">Product Name</Label>
-                  <Input
-                    id="template-name"
-                    value={templateForm.productName}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, productName: e.target.value }))}
-                    placeholder="Enter product name"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="template-description">Description</Label>
-                <Input
-                  id="template-description"
-                  value={templateForm.description}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter description"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="template-warranty">Warranty (Months)</Label>
-                  <Input
-                    id="template-warranty"
-                    type="number"
-                    value={templateForm.defaultWarrantyMonths}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, defaultWarrantyMonths: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="template-amc">AMC (Months)</Label>
-                  <Input
-                    id="template-amc"
-                    type="number"
-                    value={templateForm.defaultAmcMonths}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, defaultAmcMonths: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="template-service">Service Frequency (Days)</Label>
-                  <Input
-                    id="template-service"
-                    type="number"
-                    value={templateForm.serviceFrequencyDays}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, serviceFrequencyDays: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex space-x-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddTemplateDialog(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={addProductTemplate}
-                  className="flex-1 bg-zoss-green hover:bg-zoss-green/90"
-                >
-                  Add Template
-                </Button>
-              </div>
-            </div>
           </DialogContent>
         </Dialog>
       </div>
