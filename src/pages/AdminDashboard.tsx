@@ -1,3 +1,4 @@
+```typescript
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,9 @@ import {
   X
 } from 'lucide-react';
 import { format, parseISO, isBefore, addDays } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+
 
 interface DashboardStats {
   totalUsers: number;
@@ -76,11 +80,24 @@ interface ProductTemplate {
 interface Service {
   _id: string;
   userId: string;
-  productId: Product;
-  status: 'Pending' | 'Due Soon' | 'Overdue' | 'Completed';
+  productId: {
+    _id: string;
+    productName: string;
+    modelNumber: string;
+    imageUrl?: string;
+  };
+  issueDescription?: string;
+  requestedDate?: string;
+  requestedTime?: string;
+  nextServiceDate?: string;
+  status: 'Upcoming' | 'Due Soon' | 'Overdue' | 'Completed' | 'Pending Approval' | 'Approved & Scheduled';
   lastServiceDate?: string;
-  nextServiceDate: string;
   serviceNotes?: string;
+  technicianName?: string;
+  technicianContact?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  createdAt: string;
 }
 
 const AdminDashboard = () => {
@@ -93,11 +110,13 @@ const AdminDashboard = () => {
   const [userProducts, setUserProducts] = useState<Product[]>([]);
   const [userServices, setUserServices] = useState<Service[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
+  const [pendingServiceRequests, setPendingServiceRequests] = useState<Service[]>([]); // New state for pending services
   const [overdueServices, setOverdueServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [showAddTemplateDialog, setShowAddTemplateDialog] = useState(false);
   const [showCompleteServiceDialog, setShowCompleteServiceDialog] = useState(false);
+  const [showApproveServiceDialog, setShowApproveServiceDialog] = useState(false); // New state for approve dialog
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [servicePage, setServicePage] = useState(1);
   const [serviceTotal, setServiceTotal] = useState(0);
@@ -128,6 +147,18 @@ const AdminDashboard = () => {
     nextServiceDays: 90
   });
 
+  const [approveServiceForm, setApproveServiceForm] = useState({ // New state for approve form
+    technicianName: '',
+    technicianContact: '',
+    scheduledDate: undefined as Date | undefined,
+    scheduledTime: ''
+  });
+
+  const timeSlots = [
+    '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
+  ];
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -138,24 +169,17 @@ const AdminDashboard = () => {
     }
   }, [servicePage]);
 
-  // Add debugging logs after data is fetched
-  useEffect(() => {
-    console.log('users', users);
-    console.log('products', products);
-    console.log('allServices', allServices);
-    console.log('loading', loading);
-  }, [users, products, allServices, loading]);
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes, productsRes, pendingRes, templatesRes, overdueRes] = await Promise.all([
+      const [statsRes, usersRes, productsRes, pendingRes, templatesRes, overdueRes, pendingServicesRes] = await Promise.all([
         adminAPI.getDashboardStats(),
         adminAPI.getAllUsers(),
         productsAPI.getAllProducts(),
         adminAPI.getPendingApprovals(),
         adminAPI.getProductTemplates(),
-        servicesAPI.getOverdueServices()
+        servicesAPI.getOverdueServices(),
+        servicesAPI.getPendingServiceRequests() // Fetch pending service requests
       ]);
 
       setStats(statsRes.data.data);
@@ -164,6 +188,7 @@ const AdminDashboard = () => {
       setPendingProducts(pendingRes.data.data.pendingProducts);
       setProductTemplates(templatesRes.data.data.adminUpdates);
       setOverdueServices(overdueRes.data.data.services);
+      setPendingServiceRequests(pendingServicesRes.data.data.services); // Set pending service requests
       
       // Fetch first page of services
       const servicesRes = await servicesAPI.getAllServices(1, serviceLimit);
@@ -306,6 +331,40 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleApproveService = (service: Service) => { // New function to handle approval
+    setSelectedService(service);
+    setApproveServiceForm({
+      technicianName: '',
+      technicianContact: '',
+      scheduledDate: service.requestedDate ? parseISO(service.requestedDate) : undefined,
+      scheduledTime: service.requestedTime || ''
+    });
+    setShowApproveServiceDialog(true);
+  };
+
+  const submitApproveService = async (e: React.FormEvent) => { // New function to submit approval
+    e.preventDefault();
+    try {
+      if (!selectedService || !approveServiceForm.scheduledDate) return;
+
+      await servicesAPI.approveServiceRequest(selectedService._id, {
+        technicianName: approveServiceForm.technicianName,
+        technicianContact: approveServiceForm.technicianContact,
+        scheduledDate: approveServiceForm.scheduledDate.toISOString(),
+        scheduledTime: approveServiceForm.scheduledTime
+      });
+
+      toast.success('Service approved and scheduled successfully!');
+      setShowApproveServiceDialog(false);
+      fetchDashboardData();
+      if (selectedUser) {
+        handleUserClick(selectedUser);
+      }
+    } catch (error) {
+      toast.error('Failed to approve service');
+    }
+  };
+
   const handleUpdateService = async (serviceId: string, updates: Partial<Service>) => {
     try {
       await servicesAPI.updateService(serviceId, updates);
@@ -327,6 +386,10 @@ const AdminDashboard = () => {
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Due Soon</Badge>;
       case 'Overdue':
         return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" /> Overdue</Badge>;
+      case 'Pending Approval':
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Pending Approval</Badge>;
+      case 'Approved & Scheduled':
+        return <Badge variant="default" className="bg-purple-500"><Check className="h-3 w-3 mr-1" /> Approved & Scheduled</Badge>;
       default:
         return <Badge variant="secondary">Pending</Badge>;
     }
@@ -343,9 +406,6 @@ const AdminDashboard = () => {
       </div>
     );
   }
-
-  // Minimal render test for debugging
-  return <div>Test</div>;
 
   return (
     <div className="min-h-screen bg-zoss-cream">
@@ -424,7 +484,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="users">Users & Products</TabsTrigger>
             <TabsTrigger value="approvals">Pending Approvals</TabsTrigger>
             <TabsTrigger value="templates">Product Templates</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="services">Service Requests</TabsTrigger> {/* Changed tab name */}
           </TabsList>
 
           <TabsContent value="users" className="space-y-6">
@@ -624,22 +684,24 @@ const AdminDashboard = () => {
                                       {service.lastServiceDate ? (
                                         <>
                                           Last: {format(new Date(service.lastServiceDate), 'MMM dd, yyyy')} • 
-                                          Next: {format(new Date(service.nextServiceDate), 'MMM dd, yyyy')}
+                                          Next: {format(new Date(service.nextServiceDate!), 'MMM dd, yyyy')}
                                         </>
                                       ) : (
-                                        `Due: ${format(new Date(service.nextServiceDate), 'MMM dd, yyyy')}`
+                                        `Due: ${format(new Date(service.nextServiceDate!), 'MMM dd, yyyy')}`
                                       )}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleCompleteService(service)}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
+                                  {service.status !== 'Completed' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCompleteService(service)}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -799,76 +861,61 @@ const AdminDashboard = () => {
 
           <TabsContent value="services" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* All Services */}
+              {/* Pending Service Requests */}
               <Card>
                 <CardHeader>
-                  <CardTitle>All Services</CardTitle>
+                  <CardTitle>Pending Service Requests</CardTitle> {/* Changed title */}
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {allServices.map((service) => (
-                          <TableRow key={service._id}>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{service.productId?.productName}</p>
-                                <p className="text-sm text-zoss-gray">{service.productId?.modelNumber}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {getServiceStatusBadge(service.status)}
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(service.nextServiceDate), 'MMM dd, yyyy')}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCompleteService(service)}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                  {pendingServiceRequests.length === 0 ? (
+                    <p className="text-center text-zoss-gray py-8">No pending service requests.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Product</TableHead>
+                            <TableHead>Issue</TableHead>
+                            <TableHead>Requested Date/Time</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-zoss-gray">
-                        Showing {(servicePage - 1) * serviceLimit + 1} to {Math.min(servicePage * serviceLimit, serviceTotal)} of {serviceTotal} services
-                      </p>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          disabled={servicePage === 1}
-                          onClick={() => setServicePage(servicePage - 1)}
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="outline"
-                          disabled={servicePage * serviceLimit >= serviceTotal}
-                          onClick={() => setServicePage(servicePage + 1)}
-                        >
-                          Next
-                        </Button>
-                      </div>
+                        </TableHeader>
+                        <TableBody>
+                          {pendingServiceRequests.map((service) => (
+                            <TableRow key={service._id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{service.productId?.productName}</p>
+                                  <p className="text-sm text-zoss-gray">{service.productId?.modelNumber}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <p className="text-sm text-zoss-gray line-clamp-2">{service.issueDescription}</p>
+                              </TableCell>
+                              <TableCell>
+                                {service.requestedDate && format(new Date(service.requestedDate), 'MMM dd, yyyy')}
+                                {service.requestedTime && ` at ${service.requestedTime}`}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="sm"
+                                  className="bg-zoss-green hover:bg-zoss-green/90"
+                                  onClick={() => handleApproveService(service)} // New action
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Approve & Schedule
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Overdue Services */}
+              {/* Overdue Services (remains as is) */}
               <Card>
                 <CardHeader>
                   <CardTitle>Overdue Services</CardTitle>
@@ -888,7 +935,7 @@ const AdminDashboard = () => {
                               <div className="flex items-center space-x-2 mt-1">
                                 {getServiceStatusBadge(service.status)}
                                 <p className="text-sm text-zoss-gray">
-                                  Due: {format(new Date(service.nextServiceDate), 'MMM dd, yyyy')}
+                                  Due: {format(new Date(service.nextServiceDate!), 'MMM dd, yyyy')}
                                 </p>
                               </div>
                             </div>
@@ -909,6 +956,74 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+            {/* All Services (Optional - can be added back if needed, perhaps in a separate tab or section) */}
+            {/* <Card>
+              <CardHeader>
+                <CardTitle>All Services</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allServices.map((service) => (
+                        <TableRow key={service._id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{service.productId?.productName}</p>
+                              <p className="text-sm text-zoss-gray">{service.productId?.modelNumber}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getServiceStatusBadge(service.status)}
+                          </TableCell>
+                          <TableCell>
+                            {service.nextServiceDate && format(new Date(service.nextServiceDate), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCompleteService(service)}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-zoss-gray">
+                      Showing {(servicePage - 1) * serviceLimit + 1} to {Math.min(servicePage * serviceLimit, serviceTotal)} of {serviceTotal} services
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        disabled={servicePage === 1}
+                        onClick={() => setServicePage(servicePage - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={servicePage * serviceLimit >= serviceTotal}
+                        onClick={() => setServicePage(servicePage + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card> */}
           </TabsContent>
         </Tabs>
 
@@ -953,9 +1068,106 @@ const AdminDashboard = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Approve Service Dialog (New) */}
+        <Dialog open={showApproveServiceDialog} onOpenChange={setShowApproveServiceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Approve & Schedule Service</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={submitApproveService} className="space-y-4">
+              <div>
+                <Label>Product</Label>
+                <p className="font-medium">
+                  {selectedService?.productId.productName} ({selectedService?.productId.modelNumber})
+                </p>
+              </div>
+              <div>
+                <Label>Issue Description</Label>
+                <p className="text-sm text-zoss-gray">{selectedService?.issueDescription}</p>
+              </div>
+              <div>
+                <Label>Requested Date & Time</Label>
+                <p className="text-sm text-zoss-gray">
+                  {selectedService?.requestedDate && format(new Date(selectedService.requestedDate), 'MMM dd, yyyy')}
+                  {selectedService?.requestedTime && ` at ${selectedService.requestedTime}`}
+                </p>
+              </div>
+
+              <hr className="my-4" />
+
+              <div>
+                <Label htmlFor="technicianName">Technician Name</Label>
+                <Input
+                  id="technicianName"
+                  value={approveServiceForm.technicianName}
+                  onChange={(e) => setApproveServiceForm({...approveServiceForm, technicianName: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="technicianContact">Technician Contact</Label>
+                <Input
+                  id="technicianContact"
+                  value={approveServiceForm.technicianContact}
+                  onChange={(e) => setApproveServiceForm({...approveServiceForm, technicianContact: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Scheduled Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {approveServiceForm.scheduledDate ? format(approveServiceForm.scheduledDate, 'PPP') : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={approveServiceForm.scheduledDate}
+                        onSelect={(date) => setApproveServiceForm({...approveServiceForm, scheduledDate: date || undefined})}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label htmlFor="scheduledTime">Scheduled Time</Label>
+                  <Select value={approveServiceForm.scheduledTime} onValueChange={(value) => setApproveServiceForm({...approveServiceForm, scheduledTime: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full bg-zoss-green hover:bg-zoss-green/90">
+                Approve & Schedule Service
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
 };
 
 export default AdminDashboard;
+```
